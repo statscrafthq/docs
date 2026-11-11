@@ -80,6 +80,14 @@ done < <(sed -n '/^Supported commands:/,/^$/p' "$dl/help.txt" | sed '1d;/^$/d')
   sed -n '/^General rules:/,$p' "$dl/help.txt" | sed '1d;s/^  //'
   echo '```'
 } >> "$src/commands/index.md"
+# The list of recognized but unsupported commands is not in the help; carry it over from the
+# command pages at the tag. Without it, links to the section go to the top of the index instead.
+unsupported=$(awk '/^## Not supported yet/ { on = 1 } on && /^## / && !/^## Not supported yet/ { exit } on' "$dl/source/docs/commands/README.md" 2>/dev/null || true)
+if [ -n "$unsupported" ]; then
+  printf '\n%s\n' "$unsupported" >> "$src/commands/index.md"
+else
+  sed -i 's#commands/index\.md\#not-supported-yet#commands/index.md#g' "$src"/*.md
+fi
 
 # Help of the program's own subcommands and their flags.
 cli_help() {
@@ -149,4 +157,35 @@ pattern=$(sed -n "s/^PATTERN='\(.*\)'$/\1/p" "$root/.githooks/check-terms")
 if grep -rniE "$pattern" "$src"; then echo "forbidden vendor term in the assembled pages" >&2; exit 1; fi
 
 "${MDBOOK:-mdbook}" build "$root"
+
+# Every internal link and #anchor in the site must resolve.
+python3 -I - "$out/html" <<'EOF'
+import os, re, sys
+from urllib.parse import unquote
+site = sys.argv[1]
+ids, links = {}, []
+for d, _, files in os.walk(site):
+    for f in files:
+        if not f.endswith(".html"):
+            continue
+        p = os.path.join(d, f)
+        text = open(p, encoding="utf-8").read()
+        ids[p] = set(re.findall(r'\sid="([^"]+)"', text))
+        if f not in ("print.html", "404.html"):  # print.html repeats every page; 404.html links from the site root
+            links += [(p, h) for h in re.findall(r'\shref="([^"]*)"', text)]
+bad = []
+for page, href in links:
+    if re.match(r"[a-z][a-z0-9+.-]*:", href) or href.startswith("//"):
+        continue  # external
+    path, _, anchor = href.partition("#")
+    target = os.path.normpath(os.path.join(os.path.dirname(page), unquote(path))) if path else page
+    if os.path.isdir(target):
+        target = os.path.join(target, "index.html")
+    if not os.path.exists(target) or (anchor and target.endswith(".html") and unquote(anchor) not in ids.get(target, ())):
+        bad.append(f"{os.path.relpath(page, site)}: {href}")
+if bad:
+    print("broken internal links:", *sorted(set(bad)), sep="\n  ", file=sys.stderr)
+    sys.exit(1)
+print(f"checked {len(links)} internal and external links")
+EOF
 echo "built Statscraft $version documentation in $out/html"
