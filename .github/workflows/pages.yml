@@ -1,0 +1,75 @@
+name: Docs
+
+# Rebuilds the site when Statscraft has a newer release than the one on the site.
+# Run by hand to rebuild in any case.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * *"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  MDBOOK_VERSION: v0.5.4
+  MDBOOK_SHA256: 5222beabd3e37dc5be0d18ff99b79058469354db5c220153a1b92db5ba12be89
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.release.outputs.build }}
+    steps:
+      - name: Compare the newest release with the site
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh release view -R statscrafthq/statscraft --json tagName -q .tagName)
+          # Until the domain answers, this is empty and the site is rebuilt every day.
+          live=$(curl -fsSL https://docs.statscraft.org/version.txt 2>/dev/null || true)
+          echo "newest release $tag, site $live"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [ "$tag" != "$live" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.release.outputs.build == 'true'
+
+      - name: Install mdBook
+        if: steps.release.outputs.build == 'true'
+        run: |
+          f=mdbook-$MDBOOK_VERSION-x86_64-unknown-linux-musl.tar.gz
+          curl -fsSL -o "$RUNNER_TEMP/$f" "https://github.com/rust-lang/mdBook/releases/download/$MDBOOK_VERSION/$f"
+          echo "$MDBOOK_SHA256  $RUNNER_TEMP/$f" | sha256sum -c
+          tar -xzf "$RUNNER_TEMP/$f" -C "$RUNNER_TEMP"
+          echo "MDBOOK=$RUNNER_TEMP/mdbook" >> "$GITHUB_ENV"
+
+      - name: Build
+        if: steps.release.outputs.build == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./build.sh "${{ steps.release.outputs.tag }}"
+
+      - uses: actions/upload-pages-artifact@v5
+        if: steps.release.outputs.build == 'true'
+        with:
+          path: build/html
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

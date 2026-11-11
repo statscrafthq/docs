@@ -1,0 +1,25 @@
+#!/bin/sh
+# Keeps the names of other companies and their products out of this repository.
+# Usage: check-terms --staged | --message FILE | --tree | --history RANGE
+# The pattern is spelled with brackets so this file does not match itself.
+PATTERN='[s][p][s][s]|\b[i][b][m][0-9]*\b'
+fail() { echo "forbidden vendor term found:" >&2; echo "$1" >&2; exit 1; }
+case "$1" in
+  --staged)
+    hits=$(git diff --cached -U0 --no-color -a | grep '^+' | grep -v '^+++' | grep -i -E "$PATTERN" || true)
+    paths=$(git diff --cached --name-only | grep -i -E "$PATTERN" || true)
+    [ -z "$hits$paths" ] || fail "$hits$paths" ;;
+  --message)
+    hits=$(grep -v '^#' "$2" | grep -i -E "$PATTERN" || true)
+    [ -z "$hits" ] || fail "$hits" ;;
+  --tree)
+    hits=$(git grep -n -i -a -E "$PATTERN" -- . || true)
+    paths=$(git ls-files | grep -i -E "$PATTERN" || true)
+    [ -z "$hits$paths" ] || fail "$hits$paths" ;;
+  --history)
+    hits=$(git log --format='%h %an %cn %B' "$2" | grep -i -E "$PATTERN" || true)
+    [ -z "$hits" ] || fail "$hits" ;;
+  --name)
+    if echo "$2" | grep -q -i -E "$PATTERN"; then fail "$2"; fi ;;
+  *) echo "usage: $0 --staged | --message FILE | --tree | --history RANGE" >&2; exit 2 ;;
+esac

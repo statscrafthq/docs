@@ -1,0 +1,17 @@
+[book]
+title = "Statscraft documentation"
+language = "en"
+# build.sh assembles the pages here from a release; see README.md
+src = "build/src"
+
+[build]
+build-dir = "build/html"
+create-missing = false
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "coal"
+additional-css = ["theme/statscraft.css"]
+git-repository-url = "https://github.com/statscrafthq/statscraft"
+site-url = "/"
+cname = "docs.statscraft.org"

@@ -1,0 +1,71 @@
+/* Statscraft look over the mdBook theme. Colors follow the brand tokens (planning/brand/tokens.css).
+   Fonts: Schibsted Grotesk and JetBrains Mono, SIL Open Font License, self-hosted from assets/fonts. */
+@font-face { font-family: "Schibsted Grotesk"; src: url("../assets/fonts/schibsted-grotesk-latin-wght.woff2") format("woff2"); font-weight: 400 900; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("../assets/fonts/jetbrains-mono-latin-wght.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
+
+:root {
+  --mono-font: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --code-font-size: 0.875em;
+}
+html { font-family: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+/* Light: the brand light palette. */
+.light, html:not(.js) {
+  --bg: #FFFFFF; --fg: #12191C;
+  --sidebar-bg: #EEF4F5; --sidebar-fg: #12191C; --sidebar-non-existant: #55656A;
+  --sidebar-active: #0B4F5C; --sidebar-spacer: #DCE3E5; --sidebar-header-border-color: #0B4F5C;
+  --icons: #55656A; --icons-hover: #0B4F5C;
+  --links: #0B4F5C; --inline-code-color: #12191C;
+  --theme-popup-bg: #FFFFFF; --theme-popup-border: #DCE3E5; --theme-hover: #EEF4F5;
+  --quote-bg: #EEF4F5; --quote-border: #D9942B;
+  --table-border-color: #DCE3E5; --table-header-bg: #EEF4F5; --table-alternate-bg: #FFFFFF;
+  --searchbar-border-color: #B9C6C9; --searchbar-bg: #FFFFFF; --searchbar-fg: #12191C; --searchbar-shadow-color: transparent;
+  --searchresults-header-fg: #55656A; --searchresults-border-color: #DCE3E5; --searchresults-li-bg: #EEF4F5;
+  --search-mark-bg: #FBEBD0;
+  --sc-muted: #55656A; --sc-tint: #EEF4F5; --sc-rule: #DCE3E5;
+}
+
+/* Dark (the "coal" slot, used when the system is dark): the brand dark palette. */
+.coal {
+  --bg: #0C1517; --fg: #E4EDEF;
+  --sidebar-bg: #132024; --sidebar-fg: #E4EDEF; --sidebar-non-existant: #93A9AE;
+  --sidebar-active: #5CC2D2; --sidebar-spacer: #1F2D30; --sidebar-header-border-color: #5CC2D2;
+  --icons: #93A9AE; --icons-hover: #5CC2D2;
+  --links: #5CC2D2; --inline-code-color: #E4EDEF;
+  --theme-popup-bg: #132024; --theme-popup-border: #1F2D30; --theme-hover: #1F2D30;
+  --quote-bg: #132024; --quote-border: #F0B54A;
+  --table-border-color: #1F2D30; --table-header-bg: #132024; --table-alternate-bg: #0C1517;
+  --searchbar-border-color: #35484C; --searchbar-bg: #132024; --searchbar-fg: #E4EDEF; --searchbar-shadow-color: transparent;
+  --searchresults-header-fg: #93A9AE; --searchresults-border-color: #1F2D30; --searchresults-li-bg: #132024;
+  --search-mark-bg: #3A2E14;
+  --sc-muted: #93A9AE; --sc-tint: #132024; --sc-rule: #1F2D30;
+}
+
+/* Only the two brand themes in the theme menu. */
+#mdbook-theme-rust, #mdbook-theme-navy, #mdbook-theme-ayu { display: none; }
+#mdbook-theme-coal { font-size: 0; }
+#mdbook-theme-coal::after { content: "Dark"; font-size: 1.4rem; }
+
+/* Header: the icon before the title. */
+.menu-title { font-weight: 700; letter-spacing: -0.02em; }
+.menu-title::before {
+  content: ""; display: inline-block; width: 1.5em; height: 1.5em; margin-right: 0.5em;
+  vertical-align: -0.35em; background: url("../assets/statscraft-icon.svg") center / contain no-repeat;
+}
+
+/* Type and code. */
+.content h1, .content h2, .content h3 { letter-spacing: -0.02em; line-height: 1.15; }
+.content h1 { font-weight: 700; }
+.content h2, .content h3 { font-weight: 600; }
+pre, .hljs, code { background: var(--sc-tint); }
+pre { border-radius: 10px; }
+:not(pre) > code { border-radius: 6px; padding: 0.1em 0.3em; }
+blockquote { border-inline-start: 3px solid var(--quote-border); border-block: none; }
+table { font-variant-numeric: tabular-nums; }
+table thead th { font-weight: 600; }
+
+/* The version line on top of every page. */
+.sc-version {
+  margin: 0 0 1.5rem; padding: 0 0 0.5rem; border-bottom: 1px solid var(--sc-rule);
+  color: var(--sc-muted); font-size: 0.8125em; letter-spacing: 0.02em;
+}

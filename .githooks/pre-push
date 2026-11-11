@@ -1,0 +1,9 @@
+#!/bin/sh
+# checks the names and messages of everything being pushed
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  "$(dirname "$0")/check-terms" --name "$local_ref $remote_ref" || exit 1
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_sha" = "$zero" ]; then range="$local_sha"; else range="$remote_sha..$local_sha"; fi
+  "$(dirname "$0")/check-terms" --history "$range" || exit 1
+done
