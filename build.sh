@@ -152,6 +152,7 @@ title() { sed -n 's/^# //p' "$1" | head -n 1; }
 } > "$src/SUMMARY.md"
 
 cp -R "$root/assets" "$src/assets"
+cp "$root/robots.txt" "$src/robots.txt"
 echo "$tag" > "$src/version.txt"
 
 # The same forbidden-term check as the git hooks, on the assembled pages.
