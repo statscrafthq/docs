@@ -28,7 +28,9 @@ cp -R "$dl/source/docs/." "$src/"
 rm -rf "$src/commands"
 mkdir "$src/commands"
 # The README up to its list of documents is the start page; the sidebar replaces that list.
-awk '/^## Documentation/ { exit } { print }' "$dl/source/README.md" > "$src/index.md"
+# The README's one sentence naming other packages (there for search) stays out of the site.
+awk '/^## Documentation/ { exit } { print }' "$dl/source/README.md" |
+  sed 's/It is an alternative to [^:]*: it reads/It reads/' > "$src/index.md"
 cp "$dl/source/CHANGELOG.md" "$src/changelog.md"
 # The v0.1.1 pages quote an error code that holds a vendor name; later releases leave the code out too.
 for f in "$src"/*.md; do
