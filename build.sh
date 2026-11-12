@@ -47,9 +47,11 @@ done
   echo "|---|---|"
 } > "$src/commands/index.md"
 summary_cmds=""
-# The list holds the name padded to 18 characters, then the summary; a longer name runs into it.
+# Each line holds the name, then spaces, then the summary. Binaries up to 0.7.0 pad names to 18
+# characters, so a longer name runs straight into its summary: the name then ends where an
+# upper-case letter is followed by a lower-case one.
 while IFS= read -r line; do
-  name=$(printf '%s' "${line:2:18}" | sed 's/ *$//')
+  name=$(printf '%s' "$line" | sed -E 's/^  ([A-Z0-9.$-]+( [A-Z0-9.$-]+)*)( {2,}.*| ?[A-Z][a-z].*)$/\1/')
   slug=$(printf '%s' "$name" | tr 'A-Z ' 'a-z-')
   "$bin" help "$name" > "$dl/help-$slug.txt"
   first=$(head -n 1 "$dl/help-$slug.txt")
