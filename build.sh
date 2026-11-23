@@ -84,14 +84,8 @@ done < <(sed -n '/^Supported commands:/,/^$/p' "$dl/help.txt" | sed '1d;/^$/d')
   sed -n '/^General rules:/,$p' "$dl/help.txt" | sed '1d;s/^  //'
   echo '```'
 } >> "$src/commands/index.md"
-# The list of recognized but unsupported commands is not in the help; carry it over from the
-# command pages at the tag. Without it, links to the section go to the top of the index instead.
-unsupported=$(awk '/^## Not supported yet/ { on = 1 } on && /^## / && !/^## Not supported yet/ { exit } on' "$dl/source/docs/commands/README.md" 2>/dev/null || true)
-if [ -n "$unsupported" ]; then
-  printf '\n%s\n' "$unsupported" >> "$src/commands/index.md"
-else
-  sed -i 's#commands/index\.md\#not-supported-yet#commands/index.md#g' "$src"/*.md
-fi
+# The index lists only supported commands; links into the old unsupported section go to its top.
+sed -i 's#commands/index\.md\#not-supported-yet#commands/index.md#g' "$src"/*.md
 
 # Help of the program's own subcommands and their flags.
 cli_help() {
@@ -135,7 +129,7 @@ title() { sed -n 's/^# //p' "$1" | head -n 1; }
   echo
   echo "# Guides"
   echo
-  known="getting-started window command-line ai-agents connect mcp differences"
+  known="getting-started window command-line ai-agents connect mcp"
   for page in $known; do
     if [ -f "$src/$page.md" ]; then echo "- [$(title "$src/$page.md")]($page.md)"; fi
   done
