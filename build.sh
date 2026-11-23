@@ -25,8 +25,6 @@ gh api "repos/$repo/tarball/$tag" | tar -xz -C "$dl/source" --strip-components=1
 
 # Hand-written pages, copied as they are at the tag. The commands folder is replaced by the generated one.
 cp -R "$dl/source/docs/." "$src/"
-rm -rf "$src/commands"
-mkdir "$src/commands"
 # The README up to its list of documents is the start page; the sidebar replaces that list.
 # The README's one sentence naming other packages (there for search) stays out of the site.
 awk '/^## Documentation/ { exit } { print }' "$dl/source/README.md" |
@@ -38,54 +36,27 @@ for f in "$src"/*.md; do
   sed -i -e 's#](docs/#](#g' -e 's#](CHANGELOG\.md#](changelog.md#g' -e 's#commands/README\.md#commands/index.md#g' "$f"
 done
 
-# Command reference, generated from the help of the release binary.
-"$bin" help > "$dl/help.txt"
-{
-  echo "# Commands"
-  echo
-  echo "One page per supported command, generated from \`statscraft help\` of Statscraft $version."
-  echo
-  echo "| Command | What it does |"
-  echo "|---|---|"
-} > "$src/commands/index.md"
-summary_cmds=""
-# Each line holds the name, then spaces, then the summary. Binaries up to 0.7.0 pad names to 18
-# characters, so a longer name runs straight into its summary: the name then ends where an
-# upper-case letter is followed by a lower-case one.
-while IFS= read -r line; do
-  name=$(printf '%s' "$line" | sed -E 's/^  ([A-Z0-9.$-]+( [A-Z0-9.$-]+)*)( {2,}.*| ?[A-Z][a-z].*)$/\1/')
-  slug=$(printf '%s' "$name" | tr 'A-Z ' 'a-z-')
-  "$bin" help "$name" > "$dl/help-$slug.txt"
-  first=$(head -n 1 "$dl/help-$slug.txt")
-  [[ $first == "$name: "* ]] || { echo "unexpected help for $name: $first" >&2; exit 1; }
-  echo "| [$name]($slug.md) | ${first#"$name: "} |" >> "$src/commands/index.md"
-  summary_cmds+="  - [$name](commands/$slug.md)"$'\n'
-  # "NAME: summary", then sections such as "Syntax:" and "Example:" whose text is indented by two spaces.
-  awk '
-    function flush() {
-      while (n > 0 && buf[n] == "") n--
-      if (n > 0) { print "```text"; for (i = 1; i <= n; i++) print buf[i]; print "```"; print "" }
-      n = 0
-    }
-    NR == 1 { p = index($0, ": "); print "# " substr($0, 1, p - 1); print ""; print substr($0, p + 2); print ""; next }
-    /^[A-Z][A-Za-z ]*:$/ { flush(); print "## " substr($0, 1, length($0) - 1); print ""; insec = 1; next }
-    insec { sub(/^  /, ""); if (n > 0 || $0 != "") buf[++n] = $0; next }
-    { print }
-    END { flush() }
-  ' "$dl/help-$slug.txt" > "$src/commands/$slug.md"
-  echo "\`statscraft help $name\` prints the same text in the terminal. [All commands](index.md)" >> "$src/commands/$slug.md"
-done < <(sed -n '/^Supported commands:/,/^$/p' "$dl/help.txt" | sed '1d;/^$/d')
-[ -n "$summary_cmds" ] || { echo "no commands found in statscraft help" >&2; exit 1; }
-{
-  echo
-  echo "## General rules"
-  echo
-  echo '```text'
-  sed -n '/^General rules:/,$p' "$dl/help.txt" | sed '1d;s/^  //'
-  echo '```'
-} >> "$src/commands/index.md"
-# The index lists only supported commands; links into the old unsupported section go to its top.
-sed -i 's#commands/index\.md\#not-supported-yet#commands/index.md#g' "$src"/*.md
+# Command reference: the pages the repo generates from the command table, one per command, with
+# commands/README.md as the index grouped by topic. Each group also gets a page of its own, so the
+# sidebar lists the commands by topic.
+[ -f "$src/commands/README.md" ] || { echo "no generated command pages at $tag" >&2; exit 1; }
+mv "$src/commands/README.md" "$src/commands/index.md"
+sed -i 's#](README\.md#](index.md#g' "$src"/commands/*.md
+summary_cmds=$(python3 -I - "$src/commands" <<'EOF'
+import re, sys
+folder = sys.argv[1]
+text = open(f"{folder}/index.md", encoding="utf-8").read()
+for part in re.split(r"^## ", text, flags=re.M)[1:]:
+    heading, body = part.split("\n", 1)
+    slug = "group-" + re.sub(r"[^a-z0-9]+", "-", heading.lower()).strip("-")
+    with open(f"{folder}/{slug}.md", "w", encoding="utf-8") as f:
+        f.write(f"# {heading}\n{body.rstrip()}\n\n[All commands](index.md)\n")
+    print(f"  - [{heading}](commands/{slug}.md)")
+    for name, page in re.findall(r"^\| \[([^\]]+)\]\(([a-z0-9-]+\.md)\) \|", body, flags=re.M):
+        print(f"    - [{name}](commands/{page})")
+EOF
+)
+[ -n "$summary_cmds" ] || { echo "no command groups in commands/README.md at $tag" >&2; exit 1; }
 
 # Help of the program's own subcommands and their flags.
 cli_help() {
@@ -142,7 +113,7 @@ title() { sed -n 's/^# //p' "$1" | head -n 1; }
   echo "# Reference"
   echo
   echo "- [Commands](commands/index.md)"
-  printf '%s' "$summary_cmds"
+  printf '%s\n' "$summary_cmds"
   echo "- [Command line help](cli.md)"
   echo "- [Changelog](changelog.md)"
 } > "$src/SUMMARY.md"

@@ -15,3 +15,8 @@ additional-css = ["theme/statscraft.css"]
 git-repository-url = "https://github.com/statscrafthq/statscraft"
 site-url = "/"
 cname = "docs.statscraft.org"
+
+# The sidebar opens with the command groups closed.
+[output.html.fold]
+enable = true
+level = 1
