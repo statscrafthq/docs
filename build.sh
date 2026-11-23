@@ -105,7 +105,7 @@ title() { sed -n 's/^# //p' "$1" | head -n 1; }
   echo
   echo "# Guides"
   echo
-  known="getting-started window command-line ai-agents connect mcp"
+  known="getting-started install window command-line databases ai-agents connect mcp"
   for page in $known; do
     if [ -f "$src/$page.md" ]; then echo "- [$(title "$src/$page.md")]($page.md)"; fi
   done
