@@ -29,7 +29,12 @@ cp -R "$dl/source/docs/." "$src/"
 # The README's one sentence naming other packages (there for search) stays out of the site.
 awk '/^## Documentation/ { exit } { print }' "$dl/source/README.md" |
   sed 's/It is an alternative to [^:]*: it reads/It reads/' > "$src/index.md"
-cp "$dl/source/CHANGELOG.md" "$src/changelog.md"
+# The changelog without an empty "Unreleased" heading.
+awk '/^## Unreleased$/ { held = 1; next }
+     held && /^$/ { next }
+     held && /^## / { held = 0 }
+     held { print "## Unreleased"; print ""; held = 0 }
+     { print }' "$dl/source/CHANGELOG.md" > "$src/changelog.md"
 # The v0.1.1 pages quote an error code that holds a vendor name; later releases leave the code out too.
 for f in "$src"/*.md; do
   sed -i -E 's/"code":"unsupported_[a-z]+_command",//g' "$f"
