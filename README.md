@@ -21,9 +21,25 @@ MDBOOK=/path/to/mdbook ./build.sh v0.1.1   # a given release
 
 The site is written to `build/html`. The build fails when a command's help cannot be read or when a page holds a vendor name.
 
+## Translations
+
+The guides and the start page are also published in Simplified Chinese at `/zh-CN/`. Each `po/<language>.po` file gives one more site under `/<language>/`, built with the `gettext` preprocessor of [mdbook-i18n-helpers](https://github.com/google/mdbook-i18n-helpers) (Apache-2.0, a build tool like mdBook; set `MDBOOK_GETTEXT` to its `mdbook-gettext` binary if it is not on PATH). A paragraph the .po file does not translate stays English, so a release that changes the English text never breaks the translated site; the command pages, the command line help and the changelog stay English. `po/glossary-zh-CN.md` holds the terms. `theme/languages.js` lists the languages for the links in the menu bar.
+
+After a release, to translate what changed:
+
+```
+./build.sh                                                     # the English pages in build/src
+MDBOOK_OUTPUT='{"xgettext": {"pot-file": "messages.pot"}}' mdbook build -d po-new   # po-new/messages.pot
+python3 -I po/i18n.py jobs  po-new/messages.pot po/zh-CN.po jobs     # what is not translated yet
+# translate jobs/<page>.json into done/<page>.json: {"id": "translation"}
+python3 -I po/i18n.py merge po-new/messages.pot po/zh-CN.po jobs done build/src build/html
+```
+
+`merge` gives a translated heading the anchor of the English one, so links between pages keep working, and drops messages that are no longer in the pages. A native speaker has not reviewed the Chinese text yet.
+
 ## Publishing
 
-The **Docs** workflow builds the site and publishes it to GitHub Pages. It runs every day and rebuilds only when the newest release differs from the one in the live site's `version.txt`. Run it by hand (Actions, Docs, Run workflow, or `gh workflow run pages.yml`) to rebuild in any case.
+The **Docs** workflow builds the site and publishes it to GitHub Pages. It runs every day and rebuilds only when the newest release differs from the one in the live site's `version.txt`. A push to main that changes `po/`, `theme/`, `book.toml` or `build.sh` rebuilds it too. Run it by hand (Actions, Docs, Run workflow, or `gh workflow run pages.yml`) to rebuild in any case.
 
 ## Licenses
 

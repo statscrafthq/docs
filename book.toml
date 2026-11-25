@@ -12,6 +12,7 @@ create-missing = false
 default-theme = "light"
 preferred-dark-theme = "coal"
 additional-css = ["theme/statscraft.css"]
+additional-js = ["theme/languages.js"]
 git-repository-url = "https://github.com/statscrafthq/statscraft"
 site-url = "/"
 cname = "docs.statscraft.org"

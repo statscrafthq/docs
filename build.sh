@@ -28,7 +28,7 @@ cp -R "$dl/source/docs/." "$src/"
 # The README up to its list of documents is the start page; the sidebar replaces that list.
 # The README's one sentence naming other packages (there for search) stays out of the site.
 awk '/^## Documentation/ { exit } { print }' "$dl/source/README.md" |
-  sed 's/It is an alternative to [^:]*: it reads/It reads/' > "$src/index.md"
+  sed -e 's/It is an alternative to [^:]*: it reads/It reads/' -e '/](README\.[a-zA-Z-]*\.md)/d' > "$src/index.md"
 # The changelog without an empty "Unreleased" heading.
 awk '/^## Unreleased$/ { held = 1; next }
      held && /^$/ { next }
@@ -132,6 +132,16 @@ pattern=$(sed -n "s/^PATTERN='\(.*\)'$/\1/p" "$root/.githooks/check-terms")
 if grep -rniE "$pattern" "$src"; then echo "forbidden vendor term in the assembled pages" >&2; exit 1; fi
 
 "${MDBOOK:-mdbook}" build "$root"
+
+# One more site per translation in po/, under its own path (zh-CN.po gives /zh-CN/). Messages the
+# .po file does not translate stay English.
+for po in "$root"/po/*.po; do
+  [ -f "$po" ] || continue
+  lang=$(basename "$po" .po)
+  MDBOOK_PREPROCESSOR__GETTEXT="{\"after\": [\"links\"], \"command\": \"${MDBOOK_GETTEXT:-mdbook-gettext}\"}" \
+    MDBOOK_BOOK__LANGUAGE="$lang" MDBOOK_OUTPUT__HTML__SITE_URL="/$lang/" \
+    "${MDBOOK:-mdbook}" build -d "$out/html/$lang" "$root"
+done
 
 # Every internal link and #anchor in the site must resolve.
 python3 -I - "$out/html" <<'EOF'

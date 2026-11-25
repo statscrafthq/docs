@@ -1,9 +1,12 @@
 name: Docs
 
 # Rebuilds the site when Statscraft has a newer release than the one on the site.
-# Run by hand to rebuild in any case.
+# Also rebuilds when the translations, the theme or the build change on main. Run by hand to rebuild in any case.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["po/**", "theme/**", "book.toml", "build.sh"]
   schedule:
     - cron: "17 4 * * *"
 
@@ -36,7 +39,7 @@ jobs:
           live=$(curl -fsSL https://docs.statscraft.org/version.txt 2>/dev/null || true)
           echo "newest release $tag, site $live"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [ "$tag" != "$live" ]; then
+          if [ "$GITHUB_EVENT_NAME" != schedule ] || [ "$tag" != "$live" ]; then
             echo "build=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -51,6 +54,12 @@ jobs:
           echo "$MDBOOK_SHA256  $RUNNER_TEMP/$f" | sha256sum -c
           tar -xzf "$RUNNER_TEMP/$f" -C "$RUNNER_TEMP"
           echo "MDBOOK=$RUNNER_TEMP/mdbook" >> "$GITHUB_ENV"
+
+      - name: Install the translation preprocessor
+        if: steps.release.outputs.build == 'true'
+        run: |
+          cargo install --locked --root "$RUNNER_TEMP/i18n" mdbook-i18n-helpers --version 0.4.0
+          echo "MDBOOK_GETTEXT=$RUNNER_TEMP/i18n/bin/mdbook-gettext" >> "$GITHUB_ENV"
 
       - name: Build
         if: steps.release.outputs.build == 'true'
