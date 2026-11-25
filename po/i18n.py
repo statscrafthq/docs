@@ -58,6 +58,8 @@ def anchors(src, site):
 
 
 def quote(s):
+    if not s:
+        return '""'
     lines = s.split("\n")
     body = [json.dumps(l + "\n", ensure_ascii=False) for l in lines[:-1]] + [json.dumps(lines[-1], ensure_ascii=False)]
     body = [b for b in body if b != '""']
@@ -100,6 +102,9 @@ def main():
                 if not done.get(msgid):
                     done[msgid] = msgid  # left out on purpose: stays English
             for k, text in got.items():
+                if k not in job:
+                    print(f"{page}: id {k} is not in the job, skipped", file=sys.stderr)
+                    continue
                 msgid = job[k]
                 if msgid in ids and page != "SUMMARY" and "{#" not in text:
                     text = f"{text} {{#{ids[msgid]}}}"
